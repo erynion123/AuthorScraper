@@ -5,24 +5,30 @@ const pup = require('puppeteer');
 const scrapeAuthor = async (urls) => {
     const browser = await pup.launch();
     const posts = [];
-    const errors = [];
     for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         const page = await browser.newPage();
         try {
-            await page.goto(url);
+            await page.goto(url,{
+                waitUntil: 'load',
+                timeout: 0
+            });
             const author = await page.evaluate(() => {
-            return document.querySelectorAll('a[rel="author"]')[0].text 
-                    || document.querySelectorAll('a[itemprop="author"]')[0].text
-                    || document.querySelectorAll('span[itemprop="author"]')[0].text
-                    || document.querySelectorAll('div.author')[0].innerText;
+            return (document.querySelectorAll('a[rel="author"]')[0] && document.querySelectorAll('a[rel="author"]')[0].text)
+                    || (document.querySelectorAll('a[itemprop="author"]')[0] && document.querySelectorAll('a[itemprop="author"]')[0].text)
+                    || (document.querySelectorAll('span[itemprop="author"]')[0] && document.querySelectorAll('span[itemprop="author"]')[0].text)
+                    || (document.querySelectorAll('div.author')[0] && document.querySelectorAll('div.author')[0].innerText)
+                    || 'Could\'nt find';
             });
             posts.push({
                 url: url,
                 author: author
             });
-        } catch {
-            errors.push(url);
+        } catch (error) {
+            posts.push({
+                url: url,
+                author: 'not found'
+            });
         }
     }
 
@@ -30,14 +36,6 @@ const scrapeAuthor = async (urls) => {
 
     posts.forEach(post => {
         console.log(`Page: ${post.url} By ${post.author}`);
-    });
-
-    if (!!errors) {
-        console.log('\n=========================================\n=========================================\n');
-    }
-    
-    errors.forEach(error => {
-        console.log(`Could'nt open ${error}`);
     });
 }
 
